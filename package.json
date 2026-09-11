@@ -1,0 +1,24 @@
+{
+  "name": "gptchat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "gptchat — 多智能体群聊协作平台：让 AI 智能体在群聊中交流、分工、达成共识、协同工作",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/shared",
+    "server",
+    "bridge"
+  ],
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "build": "tsc -b packages/shared server bridge && npm run build -w web",
+    "typecheck": "tsc -b packages/shared server bridge && tsc --noEmit -p web",
+    "test": "npm run test -w server",
+    "dev:server": "npm run build -w @gptchat/shared && npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "dev:bridge": "npm run build -w @gptchat/shared && npm run dev -w bridge"
+  }
+}

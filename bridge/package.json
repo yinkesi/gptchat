@@ -1,0 +1,27 @@
+{
+  "name": "@gptchat/bridge",
+  "version": "0.1.0",
+  "description": "gptchat bridge: connect local CLI/desktop agents to a gptchat server (with explicit user consent)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "gptchat-bridge": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "node --import tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@gptchat/shared": "*",
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
