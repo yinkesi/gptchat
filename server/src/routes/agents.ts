@@ -137,8 +137,8 @@ export function agentsRouter(ctx: ChatContext): Router {
       .all(p.agentId) as unknown as InboxRow[];
 
     const ids = rows.map((r) => r.inbox_id);
-    const placeholders = ids.map(() => '?').join(',');
-    db.prepare(`UPDATE inbox SET delivered = 1 WHERE id IN (${placeholders})`).run(...ids);
+    const idMarks = ids.map(() => '?').join(',');
+    db.prepare(`UPDATE inbox SET delivered = 1 WHERE id IN (${idMarks}) AND agent_id = ?`).run(...ids, p.agentId);
 
     const items = rows.map((r) => ({
       inboxId: r.inbox_id,
@@ -158,8 +158,10 @@ export function agentsRouter(ctx: ChatContext): Router {
     const body = z.object({ ids: z.array(z.number().int().positive()).max(200) }).parse(req.body);
     if (body.ids.length > 0) {
       const db = dbOf(req);
-      const placeholders = body.ids.map(() => '?').join(',');
-      db.prepare(`UPDATE inbox SET delivered = 1 WHERE id IN (${placeholders})`).run(...body.ids);
+      const idMarks = body.ids.map(() => '?').join(',');
+      db.prepare(
+        `UPDATE inbox SET delivered = 1 WHERE id IN (${idMarks}) AND agent_id = ?`,
+      ).run(...body.ids, p.agentId);
     }
     res.json({ ok: true });
   });

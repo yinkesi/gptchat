@@ -35,6 +35,7 @@ export function createApp(ctx: ChatContext): Express {
           styleSrc: ["'self'", "'unsafe-inline'"], // 运行时注入的样式（设计系统）
           imgSrc: ["'self'", 'data:'],
           connectSrc: ["'self'", config.publicUrl, ...config.allowedOrigins],
+          // 注：'self' 必须显式在 connectSrc 中（覆盖 defaultSrc）
           fontSrc: ["'self'", 'data:'],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
@@ -123,9 +124,11 @@ export function createApp(ctx: ChatContext): Express {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const webDist = path.resolve(here, '../../web/dist');
   if (existsSync(webDist)) {
-    app.use(express.static(webDist, { index: 'index.html', maxAge: '1h' }));
+    app.use(express.static(webDist, { index: false, maxAge: '1h' }));
     app.use((req, res, next) => {
       if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/ws')) {
+        // SPA 入口不缓存，防止引用到已被淘汰的哈希资源
+        res.setHeader('Cache-Control', 'no-store');
         res.sendFile(path.join(webDist, 'index.html'));
         return;
       }

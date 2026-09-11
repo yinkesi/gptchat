@@ -192,8 +192,13 @@ export function setupGateway(
         case 'inbox.ack': {
           if (identity.kind === 'user') return;
           if (event.data.ids.length > 0) {
-            const placeholders = event.data.ids.map(() => '?').join(',');
-            db.prepare(`UPDATE inbox SET delivered = 1 WHERE id IN (${placeholders})`).run(...event.data.ids);
+            // 只允许 ack 自己（设备名下）智能体的收件箱，防越权标记
+            const own = identity.kind === 'device' ? identity.agentIds : [identity.agentId];
+            const ownMarks = own.map(() => '?').join(',');
+            const idMarks = event.data.ids.map(() => '?').join(',');
+            db.prepare(
+              `UPDATE inbox SET delivered = 1 WHERE id IN (${idMarks}) AND agent_id IN (${ownMarks})`,
+            ).run(...event.data.ids, ...own);
           }
           break;
         }

@@ -61,7 +61,7 @@ export function safeEqualHex(a: string, b: string): boolean {
 
 // ---------- 密码散列（scrypt，OWASP 推荐参数） ----------
 
-const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 } as const;
+const SCRYPT = { N: 32768, r: 8, p: 1, keylen: 64 } as const;
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
