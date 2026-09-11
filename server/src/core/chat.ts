@@ -77,6 +77,7 @@ function tryRealtimeDeliver(ctx: ChatContext, agent: AgentRow, inboxId: number, 
   ctx.hub.sendToAgent(agent.id, {
     type: 'agent.mention',
     inboxId,
+    agentId: agent.id,
     roomId: message.roomId,
     messageId: message.id,
     from: message.senderName,

@@ -69,7 +69,7 @@ function sendBacklog(db: ReturnType<typeof getDb>, hub: Hub, agentIds: string[],
   for (const agentId of agentIds) {
     const rows = db
       .prepare(
-        `SELECT i.id AS inbox_id, m.seq, m.room_id, m.sender_name, m.body
+        `SELECT i.id AS inbox_id, i.agent_id, m.seq, m.room_id, m.sender_name, m.body
          FROM inbox i JOIN messages m ON m.seq = i.message_seq
          WHERE i.agent_id = ? AND i.delivered = 0 AND i.held = 0
          ORDER BY i.id ASC LIMIT 50`,
@@ -85,6 +85,7 @@ function sendBacklog(db: ReturnType<typeof getDb>, hub: Hub, agentIds: string[],
       hub.send(sock, {
         type: 'agent.mention',
         inboxId: r.inbox_id,
+        agentId,
         roomId: r.room_id,
         messageId: r.seq,
         from: r.sender_name,

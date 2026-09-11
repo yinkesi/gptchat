@@ -9,7 +9,7 @@
     "build": "tsc -b",
     "dev": "node --import tsx src/index.ts",
     "start": "node dist/index.js",
-    "test": "npm run build -w @gptchat/shared && node --import tsx --test src/**/*.test.ts",
+    "test": "npm run build -w @gptchat/shared && node --import tsx --test --test-force-exit \"src/**/*.test.ts\"",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {

@@ -19,7 +19,7 @@ export function parseMentions(body: string, roomAgents: ReadonlyArray<{ id: stri
   // @ 前不能是字母/数字/@/.（避免误伤邮箱）；允许中文标点、空白等作为前导边界
   const pattern = new RegExp(
     `(?<![A-Za-z0-9_@.])@(${sorted.map((a) => escapeRegExp(a.name)).join('|')})(?=$|[^\\w\\u4e00-\\u9fa5-])`,
-    'gmu',
+    'gmiu',
   );
   const seen = new Set<string>();
   const byName = new Map(sorted.map((a) => [a.name.toLowerCase(), a]));

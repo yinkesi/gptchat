@@ -228,6 +228,8 @@ export type S2CEvent =
       type: 'agent.mention';
       /** inbox 行号：bridge 处理后应 ack，未 ack 的重连后会重投 */
       inboxId: number;
+      /** 被提及的智能体（bridge 据此选择本地 CLI） */
+      agentId: string;
       roomId: string;
       messageId: number;
       from: string;
