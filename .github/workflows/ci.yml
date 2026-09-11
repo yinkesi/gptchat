@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build (typecheck included)
+        run: |
+          npm run build -w @gptchat/shared
+          npm run build -w @gptchat/server
+          npm run build -w bridge
+          npm run build -w web
+      - name: Unit + WebSocket integration tests
+        run: npm test
+      - name: E2E smoke (REST)
+        run: |
+          JWT_SECRET=ci-secret-0123456789-0123456789-xyz PORT=8791 DB_PATH=$PWD/data/e2e.db node server/dist/index.js &
+          sleep 2
+          node scripts/e2e.mjs http://127.0.0.1:8791
+      - name: E2E bridge runtime
+        run: node scripts/e2e-bridge.mjs http://127.0.0.1:8791
+      - name: npm audit (high/critical)
+        run: npm audit --audit-level=high

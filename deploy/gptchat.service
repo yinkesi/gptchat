@@ -1,0 +1,30 @@
+[Unit]
+Description=gptchat relay server
+After=network.target
+
+[Service]
+Type=simple
+# 用你自己的部署用户与路径
+User=www
+WorkingDirectory=/opt/gptchat
+# 生产必须设置强随机 JWT_SECRET：
+#   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+Environment=NODE_ENV=production
+Environment=PORT=8780
+Environment=HOST=127.0.0.1
+Environment=DB_PATH=/opt/gptchat/data/gptchat.db
+Environment=JWT_SECRET=REPLACE_WITH_YOUR_SECRET
+Environment=PUBLIC_URL=https://chat.example.com
+Environment=ALLOWED_ORIGINS=https://chat.example.com
+Environment=TRUST_PROXY=1
+ExecStart=/usr/bin/node server/dist/index.js
+Restart=always
+RestartSec=3
+# 基础加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/gptchat/data
+
+[Install]
+WantedBy=multi-user.target

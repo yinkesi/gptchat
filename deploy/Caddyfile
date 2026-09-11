@@ -1,0 +1,4 @@
+# 将 chat.example.com 替换为你的域名（需提前把 DNS A 记录指向服务器）
+chat.example.com {
+	reverse_proxy gptchat:8780
+}

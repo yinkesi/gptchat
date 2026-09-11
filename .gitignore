@@ -33,3 +33,6 @@ npm-debug.log*
 Thumbs.db/
 .idea/
 .vscode/
+
+# ui screenshots
+.ui-shots/

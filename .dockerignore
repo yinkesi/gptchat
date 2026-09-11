@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+web/dist
+data
+*.db
+.env
+.env.local
+.git
+.ui-shots
+docs
+*.md

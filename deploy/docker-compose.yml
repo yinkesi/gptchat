@@ -1,0 +1,36 @@
+version: "3.8"
+
+# gptchat 生产部署：应用 + Caddy（自动 HTTPS）
+# 用法：配置好域名 DNS 后 `docker compose up -d`
+
+services:
+  gptchat:
+    build: ..
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
+      PUBLIC_URL: ${PUBLIC_URL:?请在 .env 中设置 PUBLIC_URL，如 https://chat.example.com}
+      ALLOWED_ORIGINS: ${PUBLIC_URL}
+      DB_PATH: /data/gptchat.db
+      TRUST_PROXY: "1"
+    volumes:
+      - gptchat-data:/data
+    expose:
+      - "8780"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  gptchat-data:
+  caddy-data:
+  caddy-config:
