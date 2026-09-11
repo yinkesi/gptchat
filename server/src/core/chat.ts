@@ -94,7 +94,7 @@ function scheduleEchoReply(ctx: ChatContext, room: RoomRow, agent: AgentRow, ori
         senderType: 'agent',
         senderId: agent.id,
         senderName: agent.name,
-        body: `[echo] 收到 ${original.senderName} 的消息：「${original.body.slice(0, 120)}」。我是演示用回声智能体；把你的 CLI 接入后，真实智能体即可在此协同。`,
+        body: `[echo] 收到 ${original.senderName} 的消息：「${original.body.replace(/@\S+/g, '').slice(0, 120)}」。我是演示用回声智能体；把你的 CLI 接入后，真实智能体即可在此协同。`,
       });
     } catch {
       /* 回声失败不影响主流程 */
@@ -134,10 +134,13 @@ export function postMessage(ctx: ChatContext, args: PostMessageArgs): PublicMess
 
   // 2. 提及解析
   const roomAgents = agentsInRoom(db, room.id);
-  const mentions =
+  const parsed =
     args.senderType === 'system'
       ? []
       : parseMentions(args.body, roomAgents.map((a) => ({ id: a.id, name: a.name })));
+  // 防自触发：智能体引用（ quoting ）带了自己名字的消息时不触发自己
+  const mentions =
+    args.senderType === 'agent' ? parsed.filter((m) => m.agentId !== args.senderId) : parsed;
 
   // 3. 任务状态更新（可选）
   if (args.taskUpdate) {

@@ -45,18 +45,35 @@ export function createApp(ctx: ChatContext): Express {
     }),
   );
 
-  // CORS：显式白名单（PUBLIC_URL + ALLOWED_ORIGINS），绝不通配
+  // CORS：同源直接放行；跨源必须命中白名单（PUBLIC_URL + ALLOWED_ORIGINS），绝不通配
   const allowedOrigins = new Set([config.publicUrl, ...config.allowedOrigins]);
   app.use(
     cors({
       origin(origin, cb) {
-        if (!origin || allowedOrigins.has(origin)) return cb(null, true);
-        cb(new HttpError(403, 'FORBIDDEN', '来源不在白名单内'));
+        if (!origin) return cb(null, true); // 非浏览器/同源无 Origin
+        cb(null, allowedOrigins.has(origin));
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     }),
   );
+  // 同源防御网：Host 与 Origin 一致的请求视为同源（覆盖 localhost/127.0.0.1/域名解析差异）
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      try {
+        const o = new URL(origin);
+        const host = req.headers.host ?? '';
+        if (`${o.protocol}//${o.host}` === `${req.protocol}://${host}` || o.host === host) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+          res.setHeader('Access-Control-Allow-Credentials', 'true');
+        }
+      } catch {
+        /* 忽略非法 Origin */
+      }
+    }
+    next();
+  });
 
   app.use(express.json({ limit: '256kb' }));
   app.use(cookieParser());
