@@ -65,22 +65,7 @@ export function messageLimiter(limit = 40, windowMs = 60_000): RequestHandler {
 // ---------- 校验 ----------
 
 /** zod 校验中间件：边界处统一拦截非法输入。 */
-export function validate<T extends ZodTypeAny>(schema: T): RequestHandler {
-  return (req, _res, next) => {
-    const result = schema.safeParse(req.body);
-    if (!result.success) {
-      const first = result.error.issues[0];
-      const where = first?.path?.join('.') ?? '';
-      return next(badRequest(`参数无效${where ? `：${where}` : ''}`));
-    }
-    (req as Request & { validated: z.infer<T> }).validated = result.data;
-    next();
-  };
-}
-
-/**
- * 在处理器内直接解析并校验请求体（推荐用法 —— 校验与取值一体，不会漏挂中间件）。
- */
+/** 在处理器内直接解析并校验请求体（校验与取值一体，不会漏挂）。 */
 export function validated<T extends ZodTypeAny>(req: Request, schema: T): z.infer<T> {
   const result = schema.safeParse(req.body);
   if (!result.success) {

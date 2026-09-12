@@ -11,6 +11,7 @@ import { getDb } from '../db.js';
 import { hashToken } from '../crypto.js';
 import { deviceById, userById, verifyJwt, type DeviceRow } from '../middleware/auth.js';
 import { Hub, Presence, type GptSocket, type SocketIdentity } from '../core/hub.js';
+import { roomMember } from '../core/guards.js';
 import type { RoomFlow } from '../core/flow.js';
 
 function parseCookie(header: string, name: string): string | null {
@@ -165,10 +166,9 @@ export function setupGateway(
       switch (event.data.type) {
         case 'room.join': {
           if (identity.kind !== 'user') return;
-          const member = db
-            .prepare('SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?')
-            .get(event.data.roomId, identity.userId);
-          if (!member) {
+          try {
+            roomMember(db, event.data.roomId, identity.userId);
+          } catch {
             hub.send(ws, { type: 'error', code: 'FORBIDDEN', message: '不是该房间成员' });
             return;
           }
@@ -182,7 +182,6 @@ export function setupGateway(
         case 'typing': {
           if (identity.kind !== 'user') return;
           hub.broadcastToRoom(
-            db,
             event.data.roomId,
             { type: 'typing', roomId: event.data.roomId, who: identity.userId },
             { toAgents: false },

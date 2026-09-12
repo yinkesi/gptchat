@@ -29,6 +29,8 @@ export class Hub {
   private agentSocks = new Map<string, Set<GptSocket>>();
   private roomUserSocks = new Map<string, Set<GptSocket>>();
 
+  constructor(private db: DB) {}
+
   attachUser(userId: string, sock: GptSocket): void {
     sock.identity = { kind: 'user', userId };
     let set = this.userSocks.get(userId);
@@ -78,20 +80,18 @@ export class Hub {
     }
   }
 
-  /** 发给房间内所有已加入的用户 socket；agentSockets 控制是否同步给成员智能体。 */
-  broadcastToRoom(db: DB, roomId: string, event: S2CEvent, opts: { toAgents?: boolean } = {}): void {
-    void db;
+  /** 发给房间内所有已加入的用户 socket；opts.toAgents 控制是否同步给成员智能体的 bridge。 */
+  broadcastToRoom(roomId: string, event: S2CEvent, opts: { toAgents?: boolean } = {}): void {
     for (const sock of this.roomUserSocks.get(roomId) ?? []) this.send(sock, event);
     if (opts.toAgents !== false) {
-      // 成员智能体的 bridge 也接收房间消息（作为上下文）
-      for (const sock of this.agentSocksInRoom(db, roomId)) this.send(sock, event);
+      for (const sock of this.agentSocksInRoom(roomId)) this.send(sock, event);
     }
   }
 
   /** 找到房间成员智能体对应的 socket（去重：一个 bridge 可服务多个智能体）。 */
-  private agentSocksInRoom(db: DB, roomId: string): Set<GptSocket> {
+  private agentSocksInRoom(roomId: string): Set<GptSocket> {
     const socks = new Set<GptSocket>();
-    const rows = db.prepare('SELECT agent_id FROM agent_rooms WHERE room_id = ?').all(roomId) as Array<{
+    const rows = this.db.prepare('SELECT agent_id FROM agent_rooms WHERE room_id = ?').all(roomId) as Array<{
       agent_id: string;
     }>;
     for (const r of rows) {
@@ -168,12 +168,7 @@ export class Presence {
       room_id: string;
     }>;
     for (const r of rooms) {
-      this.hub.broadcastToRoom(
-        this.db,
-        r.room_id,
-        { type: 'presence', agents: [{ agentId, status }] },
-        { toAgents: false },
-      );
+      this.hub.broadcastToRoom(r.room_id, { type: 'presence', agents: [{ agentId, status }] }, { toAgents: false });
     }
   }
 }

@@ -4,7 +4,7 @@ import { getDb, audit } from '../db.js';
 import { hashPassword, verifyPassword, newId } from '../crypto.js';
 import { conflict, unauthorized } from '../errors.js';
 import { auditReq, dbOf, requireUser, signSessionJwt } from '../middleware/auth.js';
-import { authLimiter, validate, validated } from '../middleware/common.js';
+import { authLimiter, validated } from '../middleware/common.js';
 import { toPublicUser } from '../core/mappers.js';
 import { type UserRow } from '../middleware/auth.js';
 
@@ -25,7 +25,7 @@ function issue(res: Response, userId: string): string {
   return token;
 }
 
-authRouter.post('/auth/register', authLimiter, validate(RegisterInput), async (req, res) => {
+authRouter.post('/auth/register', authLimiter, async (req, res) => {
   const input = validated(req, RegisterInput);
   const db = getDb();
   const exists = db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(input.username);
@@ -46,7 +46,7 @@ authRouter.post('/auth/register', authLimiter, validate(RegisterInput), async (r
   });
 });
 
-authRouter.post('/auth/login', authLimiter, validate(LoginInput), async (req, res) => {
+authRouter.post('/auth/login', authLimiter, async (req, res) => {
   const input = validated(req, LoginInput);
   const db = getDb();
   const user = db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE').get(input.username) as

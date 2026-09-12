@@ -11,7 +11,7 @@ import type { ChatContext } from './core/chat.js';
 const log = (...args: unknown[]): void => console.log('[gptchat]', ...args);
 
 const db = getDb();
-const hub = new Hub();
+const hub = new Hub(db);
 const presence = new Presence(db, hub);
 const flow = new RoomFlow();
 const ctx: ChatContext = { db, hub, presence, flow };

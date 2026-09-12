@@ -19,6 +19,16 @@ import {
   type DeviceRow,
 } from '../middleware/auth.js';
 import { messageLimiter, pairingLimiter, validated, z, param } from '../middleware/common.js';
+
+const PairClaimInput = z.object({ pairCode: z.string().regex(/^[A-Z0-9]{6}$/) }).strict();
+const PairApproveInput = z
+  .object({
+    candidates: z
+      .array(z.object({ name: z.string().min(1).max(64), approved: z.boolean() }))
+      .min(1)
+      .max(12),
+  })
+  .strict();
 import { decryptJson, encryptJson } from '../util/crypt.js';
 import type { ChatContext } from '../core/chat.js';
 
@@ -113,7 +123,7 @@ export function devicesRouter(ctx: ChatContext): Router {
 
   /** 用户凭配对码认领设备请求（把「屏幕上看到的码」与账号绑定）。 */
   router.post('/my/devices/claim', requireUser, messageLimiter(10, 60_000), async (req, res) => {
-    const body = z.object({ pairCode: z.string().regex(/^[A-Z0-9]{6}$/) }).strict().parse(req.body);
+    const body = validated(req, PairClaimInput);
     const p = req.principal;
     if (p?.kind !== 'user') throw forbidden();
     const db = dbOf(req);
@@ -142,15 +152,7 @@ export function devicesRouter(ctx: ChatContext): Router {
 
   /** 用户批准：勾选要接入的候选智能体 → 创建 bridge 智能体并生成令牌（加密等待领取）。 */
   router.post('/my/devices/:id/approve', requireUser, async (req, res) => {
-    const body = z
-      .object({
-        candidates: z
-          .array(z.object({ name: z.string().min(1).max(64), approved: z.boolean() }))
-          .min(1)
-          .max(12),
-      })
-      .strict()
-      .parse(req.body);
+const body = validated(req, PairApproveInput);
     const p = req.principal;
     if (p?.kind !== 'user') throw forbidden();
     const db = dbOf(req);

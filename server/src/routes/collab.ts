@@ -5,8 +5,10 @@ import { forbidden, notFound, unauthorized } from '../errors.js';
 import { dbOf, requireAgent, requireUser } from '../middleware/auth.js';
 import { validated, z, param } from '../middleware/common.js';
 import type { TaskRow, RoomRow } from '../core/mappers.js';
-import { castVote, forceResolve, listProposals, listTasks, sweepExpiredProposals } from '../core/consensus.js';
-import { broadcastTaskUpdate, type ChatContext } from '../core/chat.js';
+import { castVote, forceResolve, listProposals, sweepExpiredProposals } from '../core/consensus.js';
+import { broadcastTaskUpdate, listTasks } from '../core/tasks.js';
+import { roomMember, agentInRoom } from '../core/guards.js';
+import type { ChatContext } from '../core/chat.js';
 
 export function collabRouter(ctx: ChatContext): Router {
   const router = Router();
@@ -15,8 +17,9 @@ export function collabRouter(ctx: ChatContext): Router {
     const p = req.principal;
     if (p?.kind !== 'user') throw forbidden();
     const db = dbOf(req);
-    assertMember(db, param(req, 'id'), p.userId);
-    res.json({ proposals: listProposals(db, param(req, 'id')) });
+    const roomId = param(req, 'id');
+    roomMember(db, roomId, p.userId);
+    res.json({ proposals: listProposals(db, roomId) });
   });
 
   router.get('/rooms/:id/tasks', (req, res) => {
@@ -24,11 +27,9 @@ export function collabRouter(ctx: ChatContext): Router {
     const p = req.principal;
     const roomId = param(req, 'id');
     if (p?.kind === 'user') {
-      assertMember(db, roomId, p.userId);
+      roomMember(db, roomId, p.userId);
     } else if (p?.kind === 'agent') {
-      if (!db.prepare('SELECT 1 FROM agent_rooms WHERE room_id = ? AND agent_id = ?').get(roomId, p.agentId)) {
-        throw forbidden('智能体不在该房间');
-      }
+      if (!agentInRoom(db, roomId, p.agentId)) throw forbidden('智能体不在该房间');
     } else {
       throw unauthorized();
     }
@@ -75,12 +76,9 @@ export function collabRouter(ctx: ChatContext): Router {
     const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(task.room_id) as unknown as RoomRow;
 
     if (p?.kind === 'user') {
-      if (!db.prepare('SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?').get(room.id, p.userId)) {
-        throw forbidden('不是该房间成员');
-      }
+      roomMember(db, room.id, p.userId);
     } else if (p?.kind === 'agent') {
-      const member = db.prepare('SELECT 1 FROM agent_rooms WHERE room_id = ? AND agent_id = ?').get(room.id, p.agentId);
-      if (!member && task.assignee_agent_id !== p.agentId) throw forbidden('无权更新该任务');
+      if (!agentInRoom(db, room.id, p.agentId) && task.assignee_agent_id !== p.agentId) throw forbidden('无权更新该任务');
     } else {
       throw unauthorized();
     }

@@ -4,9 +4,10 @@ import type { DB } from '../db.js';
 import { audit } from '../db.js';
 import { newId } from '../crypto.js';
 import { conflict, forbidden, notFound } from '../errors.js';
-import { toProposalPayload, toTaskPayload, type ProposalRow, type RoomRow, type TaskRow, type VoteRow } from './mappers.js';
+import { toProposalPayload, parseSettings, type ProposalRow, type RoomRow, type TaskRow, type VoteRow } from './mappers.js';
 import { agentsInRoom, postMessage, type ChatContext } from './chat.js';
-import type { AgentRow } from '../middleware/auth.js';
+import { taskToPayload, listTasks } from './tasks.js';
+import type { AgentRow } from '../types.js';
 
 export interface Voter {
   type: 'agent';
@@ -105,24 +106,24 @@ function resolveAndBroadcast(
   }
 
   const payload = proposalWithVotes(ctx.db, { ...proposal, status: decision }, tasks);
-  ctx.hub.broadcastToRoom(ctx.db, room.id, { type: 'proposal.update', proposal: payload }, { toAgents: true });
+  ctx.hub.broadcastToRoom(room.id, { type: 'proposal.update', proposal: payload }, { toAgents: true });
 
   for (const t of tasks) {
-    let assigneeName: string | null = null;
-    if (t.assignee_agent_id) {
-      const a = ctx.db.prepare('SELECT name FROM agents WHERE id = ?').get(t.assignee_agent_id) as
-        | { name: string }
-        | undefined;
-      assigneeName = a?.name ?? null;
-    }
-    ctx.hub.broadcastToRoom(ctx.db, room.id, { type: 'task.update', task: toTaskPayload(t, assigneeName) }, { toAgents: true });
+    ctx.hub.broadcastToRoom(room.id, { type: 'task.update', task: taskToPayload(ctx.db, t) }, { toAgents: true });
   }
 
   const emoji = decision === 'accepted' ? '✅' : decision === 'rejected' ? '❌' : '⏰';
   const label = decision === 'accepted' ? '共识达成' : decision === 'rejected' ? '共识未达成（已否决）' : '提案超时关闭';
   const taskNote =
     decision === 'accepted' && tasks.length > 0
-      ? `\n已生成分工：` + tasks.map((t, i) => `\n${i + 1}. ${t.title}${t.assignee_agent_id ? ` → @${(ctx.db.prepare('SELECT name FROM agents WHERE id = ?').get(t.assignee_agent_id) as { name: string } | undefined)?.name ?? ''}` : ''}`).join('')
+      ? `\n已生成分工：` + tasks
+          .map((t, i) => {
+            const name = t.assignee_agent_id
+              ? ` → @${(ctx.db.prepare('SELECT name FROM agents WHERE id = ?').get(t.assignee_agent_id) as { name: string } | undefined)?.name ?? ''}`
+              : '';
+            return `\n${i + 1}. ${t.title}${name}`;
+          })
+          .join('')
       : '';
   postMessage(ctx, {
     roomId: room.id,
@@ -166,7 +167,7 @@ export function castVote(
     .run(proposalId, voter.id, voter.name, choice, comment, Date.now());
   audit(ctx.db, 'agent', voter.id, 'proposal.vote', { proposal: proposalId, choice }, ip);
 
-  const settings = JSON.parse(room.settings) as { consensusRatio?: number };
+  const { consensusRatio } = parseSettings(room.settings);
   const eligible = roomAgents.length;
   const counts = ctx.db
     .prepare(
@@ -175,11 +176,11 @@ export function castVote(
     .all(proposalId) as Array<{ choice: string; n: number }>;
   const approve = counts.find((c) => c.choice === 'approve')?.n ?? 0;
   const reject = counts.find((c) => c.choice === 'reject')?.n ?? 0;
-  const verdict = tally(eligible, approve, reject, settings.consensusRatio ?? 0.5);
+  const verdict = tally(eligible, approve, reject, consensusRatio);
 
   if (verdict === 'open') {
     const payload = proposalWithVotes(ctx.db, proposal);
-    ctx.hub.broadcastToRoom(ctx.db, room.id, { type: 'proposal.update', proposal: payload }, { toAgents: true });
+    ctx.hub.broadcastToRoom(room.id, { type: 'proposal.update', proposal: payload }, { toAgents: true });
     return payload;
   }
   return resolveAndBroadcast(ctx, proposal, verdict, { type: 'agent', id: voter.id, name: voter.name });
@@ -220,21 +221,5 @@ export function listProposals(db: DB, roomId: string): ProposalPayload[] {
   return rows.map((r) => proposalWithVotes(db, r));
 }
 
-/** 读取房间任务列表。 */
-export function listTasks(db: DB, roomId: string): TaskPayload[] {
-  const rows = db
-    .prepare('SELECT * FROM tasks WHERE room_id = ? ORDER BY created_at ASC LIMIT 200')
-    .all(roomId) as unknown as Array<TaskRow & { assignee_name?: string | null }>;
-  return rows.map((t) => {
-    let assigneeName: string | null = null;
-    if (t.assignee_agent_id) {
-      const a = db.prepare('SELECT name FROM agents WHERE id = ?').get(t.assignee_agent_id) as
-        | { name: string }
-        | undefined;
-      assigneeName = a?.name ?? null;
-    }
-    return toTaskPayload(t, assigneeName);
-  });
-}
-
+export { listTasks } from './tasks.js';
 export { PROPOSAL_TTL_MS };

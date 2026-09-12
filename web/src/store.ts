@@ -37,7 +37,6 @@ interface Store {
   openRoom(roomId: string | null): Promise<void>;
   loadMore(): Promise<void>;
   sendMessage(body: string, extra?: { proposal?: unknown }): Promise<void>;
-  vote(proposalId: string, choice: 'approve' | 'reject'): Promise<void>;
   forceResolve(proposalId: string, decision: 'accepted' | 'rejected'): Promise<void>;
   setTaskStatus(taskId: string, status: string): Promise<void>;
   updateRoom(patch: { topic?: string; settings?: Record<string, unknown> }): Promise<void>;
@@ -153,14 +152,6 @@ export const useStore = create<Store>((set, get) => ({
     // message.new 由 WS 回显
   },
 
-  async vote(proposalId, choice) {
-    const { room } = get();
-    // 用户不投票；该入口保留给未来的 agent 控制台。占位实现。
-    void proposalId;
-    void choice;
-    void room;
-  },
-
   async forceResolve(proposalId, decision) {
     const r = await api<{ proposal: ProposalPayload }>('POST', `/api/v1/proposals/${proposalId}/resolve`, {
       decision,
@@ -253,7 +244,10 @@ export const useStore = create<Store>((set, get) => ({
       case 'task.update': {
         const t = ev.task as TaskPayload;
         if (room && t.roomId === room.id) {
-          set((s) => ({ tasks: s.tasks.map((x) => (x.id === t.id ? t : x)).some((x) => x.id === t.id) ? s.tasks.map((x) => (x.id === t.id ? t : x)) : [...s.tasks, t] }));
+          set((s) => {
+            const exists = s.tasks.some((x) => x.id === t.id);
+            return { tasks: exists ? s.tasks.map((x) => (x.id === t.id ? t : x)) : [...s.tasks, t] };
+          });
         }
         break;
       }

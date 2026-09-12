@@ -8,7 +8,7 @@ import type {
   RoomSettings,
   TaskPayload,
 } from '@gptchat/shared';
-import { DEFAULT_MAX_AGENT_CHAIN } from '@gptchat/shared';
+import { RoomSettings as RoomSettingsSchema } from '@gptchat/shared';
 import type { AgentRow, UserRow } from '../middleware/auth.js';
 
 export interface RoomRow {
@@ -70,20 +70,17 @@ export interface TaskRow {
   updated_at: number;
 }
 
+/** 新房间的默认设置（与 shared 的 RoomSettings 默认值一致）。 */
+export function defaultSettings(): RoomSettings {
+  return RoomSettingsSchema.parse({});
+}
+
+/** 房间设置解析：始终经 shared 的 zod 模式校验并补全默认值。 */
 export function parseSettings(json: string): RoomSettings {
   try {
-    const parsed = JSON.parse(json) as Partial<RoomSettings>;
-    return {
-      agentAutoReply: parsed.agentAutoReply ?? true,
-      maxAgentChain: parsed.maxAgentChain ?? DEFAULT_MAX_AGENT_CHAIN,
-      consensusRatio: parsed.consensusRatio ?? 0.5,
-    };
+    return RoomSettingsSchema.parse(JSON.parse(json));
   } catch {
-    return {
-      agentAutoReply: true,
-      maxAgentChain: DEFAULT_MAX_AGENT_CHAIN,
-      consensusRatio: 0.5,
-    };
+    return defaultSettings();
   }
 }
 

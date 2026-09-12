@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
 function required(name: string, fallback?: string): string {
@@ -37,7 +36,3 @@ export const config = {
   trustProxy: process.env.TRUST_PROXY === '1',
   logLevel: process.env.LOG_LEVEL ?? (isProd ? 'info' : 'debug'),
 } as const;
-
-export function generateSecret(bytes = 48): string {
-  return randomBytes(bytes).toString('base64url');
-}

@@ -15,7 +15,7 @@ import { roomsRouter } from './routes/rooms.js';
 import { agentsRouter } from './routes/agents.js';
 import { collabRouter } from './routes/collab.js';
 import { devicesRouter } from './routes/devices.js';
-import { PROTOCOL_VERSION } from '@gptchat/shared';
+import { PROTOCOL_VERSION, SESSION_COOKIE } from '@gptchat/shared';
 import type { ChatContext } from './core/chat.js';
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -85,7 +85,7 @@ export function createApp(ctx: ChatContext): Express {
    */
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (MUTATING.has(req.method)) {
-      const usingCookie = Boolean((req as unknown as { cookies?: Record<string, string> }).cookies?.gptchat_session);
+      const usingCookie = Boolean((req as unknown as { cookies?: Record<string, string> }).cookies?.[SESSION_COOKIE]);
       if (usingCookie && req.get('x-gptchat-web') !== '1') {
         res.status(403).json({ error: { code: 'CSRF', message: '缺少必要的请求头' } });
         return;

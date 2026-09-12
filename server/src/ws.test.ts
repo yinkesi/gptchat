@@ -24,7 +24,7 @@ const { signSessionJwt } = await import('./middleware/auth.js');
 type S2C = Record<string, unknown>;
 
 const db = getDb();
-const hub = new Hub();
+const hub = new Hub(db);
 const presence = new Presence(db, hub);
 const flow = new RoomFlow();
 const ctx = { db, hub, presence, flow } as const;
