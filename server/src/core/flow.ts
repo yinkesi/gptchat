@@ -11,6 +11,8 @@ export class RoomFlow {
   private locked = new Map<string, boolean>();
   /** 按智能体维度的冷却：`${roomId}:${agentId}` -> 上次发言时间 */
   private lastAgentAt = new Map<string, number>();
+  /** 房间最近一次活动时间（内存清理用） */
+  private lastActivityAt = new Map<string, number>();
 
   agentCooldownRemaining(roomId: string, agentId: string, now = Date.now()): number {
     const last = this.lastAgentAt.get(`${roomId}:${agentId}`) ?? 0;
@@ -20,6 +22,7 @@ export class RoomFlow {
   /** 智能体消息入库后调用；返回新的连续计数。 */
   onAgentMessage(roomId: string, agentId: string, maxChain: number): number {
     this.lastAgentAt.set(`${roomId}:${agentId}`, Date.now());
+    this.lastActivityAt.set(roomId, Date.now());
     const next = (this.chain.get(roomId) ?? 0) + 1;
     this.chain.set(roomId, next);
     this.locked.set(roomId, next >= maxChain);
@@ -31,7 +34,29 @@ export class RoomFlow {
     const wasLocked = this.locked.get(roomId) ?? false;
     this.chain.set(roomId, 0);
     this.locked.set(roomId, false);
+    this.lastActivityAt.set(roomId, Date.now());
     return wasLocked;
+  }
+
+  /** 长期运行防内存增长：清理超过 maxIdleMs 没有活动的房间状态。返回清理条数。 */
+  pruneStale(maxIdleMs = 60 * 60 * 1000): number {
+    const cutoff = Date.now() - maxIdleMs;
+    let n = 0;
+    for (const [roomId, last] of this.lastActivityAt) {
+      if (last < cutoff) {
+        this.chain.delete(roomId);
+        this.locked.delete(roomId);
+        this.lastActivityAt.delete(roomId);
+        n++;
+      }
+    }
+    for (const [key, last] of this.lastAgentAt) {
+      if (last < cutoff) {
+        this.lastAgentAt.delete(key);
+        n++;
+      }
+    }
+    return n;
   }
 
   isLocked(roomId: string): boolean {

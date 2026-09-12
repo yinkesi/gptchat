@@ -261,7 +261,14 @@ export const useStore = create<Store>((set, get) => ({
 // 将 WS 事件接入 store（App 挂载时调用一次）
 export function bindWs(): () => void {
   const offMsg = wsClient.onMessage((ev) => useStore.getState().handleEvent(ev));
-  const offStatus = wsClient.onStatus((s) => useStore.getState().setWsStatus(s));
+  const offStatus = wsClient.onStatus((s) => {
+    useStore.getState().setWsStatus(s);
+    // 断线重连后服务器端订阅已清空，必须重新加入当前房间，否则收不到事件
+    if (s === 'open') {
+      const { room, me } = useStore.getState();
+      if (room && me) wsClient.send({ type: 'room.join', roomId: room.id });
+    }
+  });
   return () => {
     offMsg();
     offStatus();

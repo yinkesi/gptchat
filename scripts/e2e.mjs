@@ -124,6 +124,11 @@ async function main() {
   r = await bot.req('GET', '/api/v1/agents/@me/inbox?wait=5');
   ok('收件箱长轮询收到提及', r.status === 200 && r.data.items.length >= 1);
   ok('提及内容完整', r.data.items[0]?.body.includes('请列出你的能力'));
+  // peek 语义：处理完必须 ack，否则会重复投递
+  r = await bot.req('POST', '/api/v1/agents/@me/inbox/ack', { ids: r.data.items.map((i) => i.inboxId) });
+  ok('收件箱 ack 提交', r.status === 200);
+  r = await bot.req('GET', '/api/v1/agents/@me/inbox');
+  ok('ack 后不再重复投递', r.status === 200 && r.data.items.length === 0);
 
   // 智能体回复（带冷却）
   r = await bot.req('POST', `/api/v1/rooms/${roomId}/messages`, { body: '我可以写代码、跑分析、生成报告' });

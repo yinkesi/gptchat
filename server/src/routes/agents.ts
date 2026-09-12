@@ -136,10 +136,8 @@ export function agentsRouter(ctx: ChatContext): Router {
       )
       .all(p.agentId) as unknown as InboxRow[];
 
-    const ids = rows.map((r) => r.inbox_id);
-    const idMarks = ids.map(() => '?').join(',');
-    db.prepare(`UPDATE inbox SET delivered = 1 WHERE id IN (${idMarks}) AND agent_id = ?`).run(...ids, p.agentId);
-
+    // peek 语义：读取不标记；处理完成后必须 POST /inbox/ack 提交，
+    // 未 ack 的条目下次仍会返回（与 WS 通道一致的至少一次投递）。
     const items = rows.map((r) => ({
       inboxId: r.inbox_id,
       messageId: r.seq,

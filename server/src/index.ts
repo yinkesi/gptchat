@@ -35,6 +35,22 @@ server.listen(config.port, config.host, () => {
   log(`env=${config.isProd ? 'production' : 'development'} db=${config.dbPath}`);
 });
 
+// ---------- 保洁员：长期运行防数据/内存积累 ----------
+const janitor = setInterval(() => {
+  try {
+    const day = 24 * 60 * 60 * 1000;
+    // 过期配对请求（过期超 1 天才删，留足排查窗口）
+    db.prepare("DELETE FROM devices WHERE status = 'pending' AND expires_at < ?").run(Date.now() - day);
+    // 已投递且超过 7 天的收件箱（未投递的永不删，保证至少一次投递）
+    db.prepare('DELETE FROM inbox WHERE delivered = 1 AND created_at < ?').run(Date.now() - 7 * day);
+    // 房间内存流控状态的陈旧条目
+    flow.pruneStale();
+  } catch (err) {
+    console.error('[janitor]', err);
+  }
+}, 5 * 60_000);
+janitor.unref();
+
 // ---------- 优雅退出 ----------
 let shuttingDown = false;
 function shutdown(signal: string): void {
@@ -42,8 +58,14 @@ function shutdown(signal: string): void {
   shuttingDown = true;
   log(`${signal} received, shutting down…`);
   sweeper.unref();
-  server.close(() => {
+  janitor.unref();
+  // 先关 WebSocket（向客户端发起关闭握手），否则 WS 长连接会拖住 server.close
+  try {
     wss.close();
+  } catch {
+    /* 已关闭 */
+  }
+  server.close(() => {
     closeDb();
     log('bye');
     process.exit(0);

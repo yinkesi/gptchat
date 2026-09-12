@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
+import { getDb } from './db.js';
 import { attachPrincipal } from './middleware/auth.js';
 import { apiLimiter } from './middleware/common.js';
 import { HttpError } from './errors.js';
@@ -98,6 +99,12 @@ export function createApp(ctx: ChatContext): Express {
 
   // ---------- 健康检查与元信息 ----------
   app.get('/healthz', (_req, res) => {
+    try {
+      getDb().prepare('SELECT 1').get();
+    } catch {
+      res.status(503).json({ ok: false, db: false });
+      return;
+    }
     res.json({ ok: true, uptime: process.uptime() });
   });
   app.get('/api/v1/meta', (_req, res) => {

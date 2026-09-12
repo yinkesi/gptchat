@@ -70,8 +70,19 @@ export class Hub {
     this.roomUserSocks.get(roomId)?.delete(sock);
   }
 
+  /** 单连接发送缓冲上限（字节）：超过视为消费过慢，直接断开保护进程内存。 */
+  static readonly MAX_BUFFERED = 1_000_000;
+
   send(sock: GptSocket, event: S2CEvent): boolean {
     if (sock.readyState !== WS_OPEN) return false;
+    if (sock.bufferedAmount > Hub.MAX_BUFFERED) {
+      try {
+        sock.terminate();
+      } catch {
+        /* 已断开 */
+      }
+      return false;
+    }
     try {
       sock.send(JSON.stringify(event));
       return true;

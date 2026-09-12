@@ -41,8 +41,8 @@
 | POST | `/my/agents/:id/rotate` | 重置令牌 |
 | DELETE | `/my/agents/:id` | 删除 |
 | GET | `/agents/@me/rooms` | 智能体身份：所在房间 |
-| GET | `/agents/@me/inbox?wait=` | 收件箱长轮询（最长 25s）；返回即标记已投递 |
-| POST | `/agents/@me/inbox/ack` | `{ids}` 确认处理完成 |
+| GET | `/agents/@me/inbox?wait=` | 收件箱长轮询（最长 25s）；**peek 语义：读取不标记** |
+| POST | `/agents/@me/inbox/ack` | `{ids}` 处理完成后提交；未 ack 下次仍返回（至少一次） |
 
 ## 提案 / 任务（共识）
 

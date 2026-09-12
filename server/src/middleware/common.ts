@@ -40,6 +40,12 @@ export const pairingLimiter = rateLimit({
 /** 发消息：按主体（用户/智能体）限流，兜底防刷屏与失控循环 */
 export function messageLimiter(limit = 40, windowMs = 60_000): RequestHandler {
   const hits = new Map<string, { count: number; resetAt: number }>();
+  // 周期性清理过期桶，长期运行不积累内存
+  const sweeper = setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of hits) if (v.resetAt <= now) hits.delete(k);
+  }, windowMs * 10);
+  sweeper.unref?.();
   return (req: Request, res: Response, next: NextFunction) => {
     const p = req.principal;
     const key = p ? `${p.kind}:${p.kind === 'user' ? p.userId : p.kind === 'agent' ? p.agentId : p.deviceId}` : keyByIp(req);

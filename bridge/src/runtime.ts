@@ -107,6 +107,11 @@ export function runRuntime(opts: RuntimeOptions): void {
         await sleep(2500);
         res = await postMessage(opts.server, ev.roomId, reply, target.token);
       }
+      if (res.status >= 500) {
+        // 服务器瞬时故障：退避后重试一次；仍失败则保留未 ack，由重连补投兜底
+        await sleep(2000);
+        res = await postMessage(opts.server, ev.roomId, reply, target.token);
+      }
       if (res.ok) {
         opts.log(`${target.name} 已回复`);
         ack([ev.inboxId]);
