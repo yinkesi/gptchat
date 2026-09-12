@@ -100,12 +100,32 @@ sudo systemctl restart gptchat
 
 数据库迁移自动执行（schema_migrations 版本表），升级前建议冷备一份 `gptchat.db`。
 
-## 5. 备份
+## 5. 备份（已内置脚本 + 定时任务）
 
-SQLite 单文件即全部业务数据：
+仓库自带在线备份脚本（`VACUUM INTO` 快照，不停服、不依赖 sqlite3 CLI，自动完整性校验 + 保留份数清理）：
 
 ```bash
-sqlite3 /opt/gptchat/data/gptchat.db ".backup '/backup/gptchat-$(date +%F).db'"
+node scripts/backup.mjs        # 备份到 ./backups/，保留 14 份
 ```
 
-（或直接停服后拷贝文件；WAL 模式下务必使用 `.backup` 或停服拷贝。）
+装成 crontab（一份现成模板在 `deploy/crontab.example`）：
+
+```bash
+crontab -e
+# 每天 04:00 备份并记录日志
+0 4 * * * cd /opt/gptchat && BACKUP_KEEP=14 /usr/bin/node scripts/backup.mjs >> backups/backup.log 2>&1
+```
+
+**恢复**：停服（`sudo systemctl stop gptchat`）→ 用备份文件覆盖 `data/gptchat.db`（同时删除同目录 `gptchat.db-wal` / `gptchat.db-shm`）→ 起服 → `curl http://127.0.0.1:8780/healthz` 验证。
+建议定期做一次恢复演练（把备份文件复制出来，用 `DB_PATH=<备份文件> node server/dist/index.js` 起一个临时实例验证可读）。
+
+## 6. 可用性监控（免费方案：UptimeRobot）
+
+服务器有公网域名后，用 UptimeRobot 免费版（50 个监控位、5 分钟间隔）做拨测：
+
+1. 注册 https://uptimerobot.com（免费计划即可）
+2. Add New Monitor → 类型选 **HTTP(s)**
+3. URL 填 `https://你的域名/healthz`（该接口含数据库探活，DB 异常会返回 503）
+4. 间隔选 5 分钟；建议再到 Alert Contacts 里绑定微信/邮件通知
+
+注意：拨测的是公网地址，本地 127.0.0.1 的开发实例监控不到；部署上云后配置才生效。

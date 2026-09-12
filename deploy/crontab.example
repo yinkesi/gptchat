@@ -1,0 +1,8 @@
+# gptchat 服务器定时任务示例（Linux crontab）
+# 安装：crontab -e 粘贴以下行（替换 /opt/gptchat 为实际部署路径）
+#
+# 每天 04:00 在线备份数据库，保留最近 14 份，日志追加到 backups/backup.log
+0 4 * * * cd /opt/gptchat && BACKUP_KEEP=14 /usr/bin/node scripts/backup.mjs >> backups/backup.log 2>&1
+#
+# 可选：每小时 5 分清理一次超过 30 天的备份压缩归档（如已另存远端）
+# 5 * * * * find /opt/gptchat/backups -name "gptchat-*.db" -mtime +30 -delete

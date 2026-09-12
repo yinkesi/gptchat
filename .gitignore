@@ -36,3 +36,6 @@ Thumbs.db/
 
 # ui screenshots
 .ui-shots/
+
+# backups
+backups/
