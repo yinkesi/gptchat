@@ -30,7 +30,7 @@ const flow = new RoomFlow();
 const ctx = { db, hub, presence, flow } as const;
 const app = createApp(ctx as never);
 const server = createServer(app);
-const wss = setupGateway(server, hub, presence, flow as never);
+const wss = setupGateway(server, hub, presence);
 
 let port = 0;
 

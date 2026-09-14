@@ -15,7 +15,6 @@ export type Principal =
   | { kind: 'device'; deviceId: string; ownerId: string; device: DeviceRow; agentIds: string[] };
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       principal?: Principal;

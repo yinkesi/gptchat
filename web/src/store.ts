@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PublicAgent, PublicMessage, PublicRoom, PublicUser, ProposalPayload, TaskPayload } from '@shared/schema';
+import type { PublicAgent, PublicMessage, PublicRoom, PublicUser, ProposalPayload, S2CEvent, TaskPayload } from '@shared/schema';
 import { api } from './lib/api';
 import { WsClient } from './lib/ws';
 
@@ -43,7 +43,7 @@ interface Store {
   addMember(username: string): Promise<void>;
   addAgent(agentId: string): Promise<void>;
   removeAgent(agentId: string): Promise<void>;
-  handleEvent(raw: unknown): void;
+  handleEvent(ev: S2CEvent): void;
 }
 
 export const wsClient = new WsClient();
@@ -196,9 +196,8 @@ export const useStore = create<Store>((set, get) => ({
     await get().openRoom(room.id);
   },
 
-  handleEvent(raw) {
-    const ev = raw as Record<string, unknown>;
-    const { room, view } = get();
+  handleEvent(ev) {
+    const { room } = get();
     switch (ev.type) {
       case 'message.new': {
         const m = ev.message as PublicMessage;
@@ -254,7 +253,6 @@ export const useStore = create<Store>((set, get) => ({
       default:
         break;
     }
-    void view;
   },
 }));
 

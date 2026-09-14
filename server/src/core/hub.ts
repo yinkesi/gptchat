@@ -119,13 +119,6 @@ export class Hub {
     return false;
   }
 
-  hasLiveSocket(agentId: string): boolean {
-    for (const sock of this.agentSocks.get(agentId) ?? []) {
-      if (sock.readyState === WS_OPEN) return true;
-    }
-    return false;
-  }
-
   /** 立即断开服务某智能体的所有 socket（设备吊销时调用）。 */
   dropAgentSockets(agentId: string): void {
     for (const sock of this.agentSocks.get(agentId) ?? []) {
@@ -136,10 +129,6 @@ export class Hub {
       }
     }
     this.agentSocks.delete(agentId);
-  }
-
-  roomUserCount(roomId: string): number {
-    return [...(this.roomUserSocks.get(roomId) ?? [])].filter((s) => s.readyState === WS_OPEN).length;
   }
 }
 
@@ -184,7 +173,3 @@ export class Presence {
   }
 }
 
-/** 由 agent 行构造 presence 广播所需的载荷。 */
-export function agentStatus(a: AgentRow): { agentId: string; status: 'online' | 'offline' } {
-  return { agentId: a.id, status: a.status === 'online' ? 'online' : 'offline' };
-}

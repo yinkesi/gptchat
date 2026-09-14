@@ -101,7 +101,6 @@ export function setupGateway(
   server: HttpServer,
   hub: Hub,
   presence: Presence,
-  _flow: RoomFlow,
 ): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true, maxPayload: WS_MAX_PAYLOAD });
 

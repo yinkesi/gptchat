@@ -1,4 +1,6 @@
-export type WsHandler = (event: unknown) => void;
+import type { C2SEvent, S2CEvent } from '@shared/schema';
+
+export type WsHandler = (event: S2CEvent) => void;
 
 /**
  * WebSocket 客户端：自动重连（指数退避，封顶 15s）。
@@ -39,9 +41,9 @@ export class WsClient {
       this.setStatus('open');
     };
     ws.onmessage = (ev) => {
-      let data: unknown;
+      let data: S2CEvent;
       try {
-        data = JSON.parse(ev.data as string);
+        data = JSON.parse(ev.data as string) as S2CEvent;
       } catch {
         return;
       }
@@ -63,7 +65,7 @@ export class WsClient {
     };
   }
 
-  send(event: unknown): void {
+  send(event: C2SEvent): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(event));
     }

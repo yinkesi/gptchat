@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import type { S2CEvent } from '@gptchat/shared';
 import { buildPrompt, invokeAdapter } from './adapters.js';
 import { postMessage } from './http.js';
 import type { BridgeState } from './config.js';
@@ -12,15 +13,7 @@ export interface RuntimeOptions {
   log: (msg: string) => void;
 }
 
-interface MentionEvent {
-  type: 'agent.mention';
-  inboxId: number;
-  agentId: string;
-  roomId: string;
-  messageId: number;
-  from: string;
-  body: string;
-}
+type MentionEvent = Extract<S2CEvent, { type: 'agent.mention' }>;
 
 /**
  * bridge 运行时：以设备身份维持 WebSocket；

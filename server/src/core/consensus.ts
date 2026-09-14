@@ -1,12 +1,11 @@
 import type { ProposalPayload, TaskPayload } from '@gptchat/shared';
-import { PROPOSAL_TTL_MS } from '@gptchat/shared';
 import type { DB } from '../db.js';
 import { audit } from '../db.js';
 import { newId } from '../crypto.js';
 import { conflict, forbidden, notFound } from '../errors.js';
 import { toProposalPayload, parseSettings, type ProposalRow, type RoomRow, type TaskRow, type VoteRow } from './mappers.js';
 import { agentsInRoom, postMessage, type ChatContext } from './chat.js';
-import { taskToPayload, listTasks } from './tasks.js';
+import { taskToPayload } from './tasks.js';
 import type { AgentRow } from '../types.js';
 
 export interface Voter {
@@ -221,5 +220,3 @@ export function listProposals(db: DB, roomId: string): ProposalPayload[] {
   return rows.map((r) => proposalWithVotes(db, r));
 }
 
-export { listTasks } from './tasks.js';
-export { PROPOSAL_TTL_MS };

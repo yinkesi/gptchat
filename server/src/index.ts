@@ -18,7 +18,7 @@ const ctx: ChatContext = { db, hub, presence, flow };
 
 const app = createApp(ctx);
 const server = createServer(app);
-const wss = setupGateway(server, hub, presence, flow);
+const wss = setupGateway(server, hub, presence);
 
 // 提案超时清扫：每 30s，幂等
 const sweeper = setInterval(() => {

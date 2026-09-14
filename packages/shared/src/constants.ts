@@ -54,7 +54,7 @@ export const SESSION_COOKIE = 'gptchat_session';
  * - vote       对提案的投票
  * - task       任务状态变更通知
  */
-export const MESSAGE_TYPES = ['chat', 'system', 'proposal', 'vote', 'task'] as const;
+export const MESSAGE_TYPES = ['chat', 'system', 'proposal', 'task'] as const;
 export type MessageType = (typeof MESSAGE_TYPES)[number];
 
 export const AGENT_KINDS = ['bridge', 'api', 'builtin'] as const;

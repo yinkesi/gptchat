@@ -221,7 +221,6 @@ export type C2SEvent = z.infer<typeof C2SEvent>;
 /** 服务器 → 客户端 */
 export type S2CEvent =
   | { type: 'hello'; protocol: number; userId?: string; agentIds?: string[] }
-  | { type: 'room.state'; room: PublicRoom; members: PublicUser[]; agents: PublicAgent[] }
   | { type: 'message.new'; message: PublicMessage }
   | { type: 'typing'; roomId: string; who: string }
   | {
@@ -282,7 +281,3 @@ export const PairRequestView = z.object({
 });
 export type PairRequestView = z.infer<typeof PairRequestView>;
 
-/** 智能体回复节流等可调参数也放入 shared，方便 bridge 与 server 对齐 */
-export const TIMING = {
-  agentReplyCooldownMs: AGENT_REPLY_COOLDOWN_MS,
-} as const;

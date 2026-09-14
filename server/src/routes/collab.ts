@@ -64,9 +64,7 @@ export function collabRouter(ctx: ChatContext): Router {
 
   /** 任务状态更新（成员用户或负责智能体） */
   router.patch('/tasks/:id', async (req, res) => {
-    const body = z
-      .object({ status: z.enum(['pending', 'in_progress', 'done', 'cancelled']) })
-      .parse(req.body);
+    const body = validated(req, z.object({ status: z.enum(['pending', 'in_progress', 'done', 'cancelled']) }));
     const db = dbOf(req);
     const p = req.principal;
     const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(param(req, 'id')) as
@@ -97,12 +95,4 @@ export function collabRouter(ctx: ChatContext): Router {
   });
 
   return router;
-}
-
-function assertMember(db: ReturnType<typeof getDb>, roomId: string, userId: string): RoomRow {
-  const room = db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId) as unknown as RoomRow | undefined;
-  if (!room) throw notFound('房间不存在');
-  const member = db.prepare('SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?').get(roomId, userId);
-  if (!member) throw forbidden('不是该房间成员');
-  return room;
 }

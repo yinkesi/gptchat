@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BODY_LIMIT } from '@gptchat/shared';
 import { config } from './config.js';
 import { getDb } from './db.js';
 import { attachPrincipal } from './middleware/auth.js';
@@ -77,7 +78,7 @@ export function createApp(ctx: ChatContext): Express {
     next();
   });
 
-  app.use(express.json({ limit: '256kb' }));
+  app.use(express.json({ limit: BODY_LIMIT }));
   app.use(cookieParser());
 
   /**
